@@ -45,18 +45,19 @@ vector<string> derivatives;
 
 string inputString;
 vector<string> priorit;
+vector <string> savedFD;
 int nrDeriv = 0;
 
-char randuri[200][200];
-int nrRanduri = 0;
-int inceput = 0;
+char rows[200][200];
+int nrrows = 0;
+int beginning = 0;
 
-char randuriD[200][200];
-int nrRanduriD = 0;
-int inceputD = 0;
+char rowsD[200][200];
+int nrrowsD = 0;
+int beginningD = 0;
 
 char errors[200][200];
-int nrErori = 0;
+int nrErrors = 0;
 
 string postfixDeriv;
 string infixDeriv;
@@ -67,11 +68,11 @@ node* rootD;
 void reset();
 FILE* sav;
 
+
 void initialization()
 {
-    initwindow( 1000, 600, "Derivare formala", 125, 25);
+    initwindow( 1000, 600, "Derivative", 125, 25);
 
-    // Prioritatea operatorilor
 
     priorit.push_back("+");
     priorit.push_back("-");
@@ -95,24 +96,7 @@ void initialization()
 
     sav = fopen("save_derivative.txt", "w");
 }
-bool detectNumber(string nr)
-{
-    for( int i = 0; i<nr.size(); i++)
-        if( nr[i]<'0' or nr[i]>'9' )
-            return false;
-    return true;
-}
-bool detectArgument(node* n)
-{
-    if( n!=NULL )
-    {
-        if ( detectNumber(n->info) == 1 or n->info == "x" )
-            return true;
-        detectArgument( n->left);
-        detectArgument( n->right);
-        return false;
-    }
-}
+
 bool validCh( char c )
 {
     if( c>='0' and c<='9')
@@ -127,23 +111,15 @@ bool validCh( char c )
 }
 bool evaluate(string fun)
 {
-    //nr de paranteze
-    //paranteze goale
-    //cazul in care se incepe direct cu operator cu aritate 2
-    //cazul in care nu exista al doilea operand (operator langa operator sau operator langa NULL sau paranteza)
-    //cazul in care apar alte caractere in afara de numere si x ca operatori-
-    //fara spatii
-    //ceva supra 0
-    //mereu ceva inainte si dupa '.', cifre
 
     bool success = true;
 
-    for(int i = 0; i <= nrErori; i++)
+    for(int i = 0; i <= nrErrors; i++)
     {
         strcpy(errors[i], " ");
     }
 
-    nrErori = 0;
+    nrErrors = 0;
 
     if(fun.size() == 0)
     {
@@ -162,15 +138,15 @@ bool evaluate(string fun)
             if( fun[i+1]==')' or fun[i+1]==' ')
             {
 
-                strcpy(errors[nrErori], "There are paranthesis with nothing in between them.");
-                nrErori++;
+                strcpy(errors[nrErrors], "There are paranthesis with nothing in between them.");
+                nrErrors++;
                 success = false;
             }
             //paranteza incepe cu operator2
             if( fun[i+1]=='+' or fun[i+1]=='/' or fun[i+1]=='*' or fun[i+1]=='^')
             {
-                strcpy(errors[nrErori], "Paranthesis begins with a binary operator.");
-                nrErori++;
+                strcpy(errors[nrErrors], "Paranthesis begins with a binary operator.");
+                nrErrors++;
                 success = false;
             }
         }
@@ -178,23 +154,23 @@ bool evaluate(string fun)
         if( fun[i]=='+' or fun[i]=='/' or fun[i]=='*' or fun[i]=='^' or fun[i]=='-')
             if( fun[i+1]=='+' or fun[i+1]=='/' or fun[i+1]=='*' or fun[i+1]=='^' or fun[i+1]=='-')
             {
-                strcpy(errors[nrErori], "There are binary operators next to binary operators.");
-                nrErori++;
+                strcpy(errors[nrErrors], "There are binary operators next to binary operators.");
+                nrErrors++;
                 success = false;
             }
         //operator la sfarsitul sirului sau parantezei
         if( fun[i]=='+' or fun[i]=='/' or fun[i]=='*' or fun[i]=='^' or fun[i]=='-')
             if( fun[i+1]==NULL or fun[i+1]==')')
             {
-                strcpy(errors[nrErori], "The function ends with an operator or there are paranthesis that end with an operator.");
-                nrErori++;
+                strcpy(errors[nrErrors], "The function ends with an operator or there are paranthesis that end with an operator.");
+                nrErrors++;
                 success = false;
             }
         //alte caractere
         if( validCh(fun[i])==0)
         {
-            strcpy(errors[nrErori], "The function contains other characters.");
-            nrErori++;
+            strcpy(errors[nrErrors], "The function contains other characters.");
+            nrErrors++;
             success = false;
         }
         if( fun[i] == ')')
@@ -202,38 +178,67 @@ bool evaluate(string fun)
         //spatiu in sir
         if( fun[i] == ' ')
         {
-            strcpy(errors[nrErori], "There is whitespace in your input.");
-            nrErori++;
+            strcpy(errors[nrErrors], "There is whitespace in your input.");
+            nrErrors++;
             success = false;
         }
         //impartire la 0
         if( fun[i] == '/' )
             if( fun[i+1] == '0' )
             {
-                strcpy(errors[nrErori], "The function contains dividing by 0.");
-                nrErori++;
+                strcpy(errors[nrErrors], "The function contains dividing by 0.");
+                nrErrors++;
                 success = false;
             }
         //ceva inainte si dupa '.'
         if( fun[i] == '.' )
             if( fun[i-1]<'0' or fun[i-1]>'9' or fun[i+1]<'0' or fun[i+1]>'9' )
             {
-                strcpy(errors[nrErori], "The function contains an incomplete or incorrect number.");
-                nrErori++;
+                strcpy(errors[nrErrors], "The function contains an incomplete or incorrect number.");
+                nrErrors++;
+                success = false;
+            }
+        //012 002
+        if(fun[i]=='0' and fun[i+1]!='.' and !( fun[i-1]>='0' and fun[i-1]<='9') and ( fun[i+1]>='0' and fun[i+1]<='9') )
+        {
+                strcpy(errors[nrErrors], "The function contains an incorrect number.");
+                nrErrors++;
+                success = false;
+        }
+        //lipsa operatorilor
+        if(fun[i]>='a' and fun[i]<='z')
+            if(isdigit(fun[i-1]) or isdigit(fun[i+1]) )
+        {
+                strcpy(errors[nrErrors], "The function does not contain enough operators.");
+                nrErrors++;
+                success = false;
+        }
+        if(fun[i]==')')
+            if(isdigit(fun[i+1]) or (fun[i+1]>='a' and fun[i+1]<='z'))
+        {
+                strcpy(errors[nrErrors], "The function does not contain enough operators.");
+                nrErrors++;
+                success = false;
+        }
+        if(fun[i]=='(')
+            if(isdigit(fun[i-1]) )
+            {
+                strcpy(errors[nrErrors], "The function does not contain enough operators.");
+                nrErrors++;
                 success = false;
             }
     }
     //incepe cu operator2
     if( fun[0]=='+' or fun[0]=='/' or fun[0]=='*' or fun[0]=='^')
     {
-        strcpy(errors[nrErori], "Your input begins with a binary operator.");
-        nrErori++;
+        strcpy(errors[nrErrors], "Your input begins with a binary operator.");
+        nrErrors++;
         success = false;
     }
     if ( ps != pd )
     {
-        strcpy(errors[nrErori], "The number of open paranthesis does not match the number of closed paranthesis.");
-        nrErori++;
+        strcpy(errors[nrErrors], "The number of open paranthesis does not match the number of closed paranthesis.");
+        nrErrors++;
         success = false;
     }
     return success;
@@ -247,13 +252,8 @@ bool evaluate1String( string x)
 }
 bool evaluateStrings(string fun)
 {
-
     bool success = true;
     string x="";
-    if(fun == "x")
-        return success;
-    if(fun.size() > 1 && fun[0] == 'x' && (fun[1] < 'a' || fun[1] > 'z'))
-        return success;
     for(int i = 0; i <= fun.size(); i++)
     {
         if(fun[i]>='a' and fun[i]<='z')
@@ -264,16 +264,17 @@ bool evaluateStrings(string fun)
             {
                 if(evaluate1String(x) == 0)
                 {
-                    strcpy(errors[nrErori], "There is a function written incorrectly.");
-                    nrErori++;
+                    strcpy(errors[nrErrors], "There is a function written incorrectly.");
+                    nrErrors++;
                     success = false;
                 }
+
                 else
                 {
                     if(fun[i] != '(')
                     {
-                        strcpy(errors[nrErori], "There are functions with no arguments.");
-                        nrErori++;
+                        strcpy(errors[nrErrors], "There are functions with no arguments.");
+                        nrErrors++;
                         success = false;
                     }
                 }
@@ -284,6 +285,46 @@ bool evaluateStrings(string fun)
     }
     return success;
 }
+bool correctMath=true;
+bool evaluateTree(node* a)
+{
+    if(a!=NULL)
+    {
+        if(a->info=="ln" or a->info=="lg" or a->info=="log")
+            if(a->right->info=="0" or ( a->right->info[0]=='-' and isdigit(a->right->info[1])) or (a->right->info=="-" and a->right->left->info=="0" and isdigit(a->right->right->info[0])))
+            {
+                strcpy(errors[nrErrors], "There are functions with wrong arguments.");
+                nrErrors++;
+                correctMath=false;
+            }
+        if(a->info=="sqrt")
+            if(a->right->info[0]=='-' and isdigit(a->right->info[1]) or (a->right->info=="-" and a->right->left->info=="0" and isdigit(a->right->right->info[0])) )
+        {
+                strcpy(errors[nrErrors], "There are functions with wrong arguments.");
+                nrErrors++;
+                correctMath=false;
+        }
+        if(a->info=="/")
+            if(a->right->info=="0")
+        {
+                strcpy(errors[nrErrors], "The function contains dividing by 0.");
+                nrErrors++;
+                correctMath=false;
+        }
+        if(a->info=="^")
+            if(a->right->info=="0" and a->left->info=="0")
+            {
+                strcpy(errors[nrErrors], "The function contains 0^0, which is undefined.");
+                nrErrors++;
+                correctMath=false;
+            }
+        evaluateTree(a->left);
+        evaluateTree(a->right);
+    }
+    else
+        return correctMath;
+}
+
 bool detectPriorit(string pr)
 {
     for( int i = 0; i<=17; i++)
@@ -307,6 +348,7 @@ int priority(string inputString)
             return i;
     return 17;
 }
+
 queue<string> convInfix2Postfix(string seq)
 {
     stack<string> st;
@@ -370,6 +412,7 @@ queue<string> convInfix2Postfix(string seq)
 
     return postfix;
 }
+
 void minusUnar(string& fun)
 {
     if( fun[0] == '-')
@@ -378,27 +421,29 @@ void minusUnar(string& fun)
         if( fun[i] == '(' and fun[i+1] == '-' )
             fun.insert(i+1, 1, '0');
 }
+
 void partiallyreset()
 {
     conversionDone = false;
     nrDeriv = 0;
 
     derivatives.clear();
-    for(int i = 0; i <= nrErori; i++)
+    for(int i = 0; i <= nrErrors; i++)
     {
         strcpy(errors[i], " ");
     }
-    nrErori = 0;
+    nrErrors = 0;
 
-    for(int i = 0; i <= nrRanduri; i++)
+    for(int i = 0; i <= nrrows; i++)
     {
-        strcpy(randuri[i], " ");
+        strcpy(rows[i], " ");
     }
-    nrRanduri = 0;
-    inceput = 0;
+    nrrows = 0;
+    beginning = 0;
 
     inputFull = false;
 }
+
 void getInput()
 {
     if(ismouseclick(WM_LBUTTONDOWN))
@@ -453,8 +498,6 @@ void getInput()
             backButton = false;
     }
 
-
-
     if(kbhit())
     {
         char key = getch();
@@ -492,6 +535,7 @@ int arity(string q)
             return 2;
     return 1;
 }
+
 node* generateTree(stack<string> &St)
 {
     node* root = new node;
@@ -536,10 +580,37 @@ void generateStack()
     rootF = generateTree(St);
 
 }
+
+void negativeNrTree(node* a)
+{
+    if(a!=NULL)
+    {
+        if(a->info[0]=='-' and isdigit(a->info[1]))
+        {
+            node* p;
+            p=new node;
+            string x="";
+            for(int i=1; i<a->info.size();i++)
+                 x+=a->info[i];
+            p->info=x;
+            p->right=NULL;
+            p->left=NULL;
+            a->info="-";
+            a->right=p;
+            a->left=new node;
+            a->left->info="0";
+            a->left->left=NULL;
+            a->left->right=NULL;
+        }
+        negativeNrTree(a->left);
+        negativeNrTree(a->right);
+        }
+}
 int isNull(node* a)
 {
     return (a==NULL);
 }
+
 bool detectFunction(node* fun)
 {
     if(fun == NULL)
@@ -548,6 +619,7 @@ bool detectFunction(node* fun)
         return true;
     return (detectFunction(fun->left) || detectFunction(fun->right));
 }
+
 node* derive(node* root)
 {
     node* n = new node;
@@ -1049,24 +1121,20 @@ node* derive(node* root)
         return r;
     }
 }
+
 bool compareTrees(node* a, node* b)
 {
 
     if(a == NULL && b == NULL)
-
         return true;
-
     if((a == NULL && b != NULL) || (a != NULL && b == NULL))
-
         return false;
-
     if(a->info != b->info)
-
         return false;
-
     return compareTrees(a->left, b->left) && compareTrees(a->right, b->right);
 
 }
+
 void postorder(node* a)
 {
     if (!isNull(a))
@@ -1077,22 +1145,11 @@ void postorder(node* a)
         postfixDeriv+=" ";
     }
 }
-void parcurgereInPreordine(node* a, int nivel)
-{
-    if (!isNull(a))
-    {
-        for( int i =1; i<=nivel; i++)
-            cout<<"   ";
-        cout<<a->info<<"\n";
-        parcurgereInPreordine(a->left, nivel+1);
-        parcurgereInPreordine(a->right, nivel+1);
-    }
-}
+
 string convPostfix2Infix(string postFix)
 {
     stack<string> St;
     int i=0;
-
     while( i<postFix.size() )
     {
         string c="";
@@ -1114,17 +1171,40 @@ string convPostfix2Infix(string postFix)
             {
                 left=St.top();
                 St.pop();
-                val+="("+left+c+right+")";
-            }
+                if(c!="^")
+                   val+="("+left+c+right+")";
+                else
+                 {
+                        int k;
+                        if(left[0]>='a' and left[0]<='z' and left[0]!='x' and left[0]!='e')
+                        {
+
+                            string x="";
+                            k=0;
+                            while(left[k]>='a' and left[k]<='z' and left[k]!='e' and left[k]!='x')
+                            {
+                                x+=left[k];
+                                k++;
+                            }
+                            for(int j=5; j<=16; j++)
+                                if(priorit[j]==x)
+                                    {
+                                        val+="("+left+")"+c+right;
+                                    }
+                        }
+                        else
+                            val+=left+c+right;
+                    }
+                }
             else
-                val+="("+c+right+")";
-            //cout<<val<<endl;
+                val+=c+right;
             St.push(val);
         }
         i++;
     }
     return St.top();
 }
+
 string Number2String( double nr )
 {
     string z;
@@ -1139,6 +1219,7 @@ string Number2String( double nr )
             return z;
         }
 }
+
 double String2Number( string number)
 {
     double nr = 0;
@@ -1165,6 +1246,7 @@ double String2Number( string number)
     else
         return nr;
 }
+
 void simplify(node*& root)
 {
     if(root != NULL)
@@ -1215,7 +1297,7 @@ void simplify(node*& root)
         }
         if(root->info == "/")
         {
-            if(root->left->info == "0")
+            if(root->left->info == "0" and root->right->info!="0")
             {
                 root->info = "0";
                 root->right = NULL;
@@ -1235,7 +1317,7 @@ void simplify(node*& root)
         }
         if(root->info == "^")
         {
-            if( root->left->info == "0" )
+            if( root->left->info == "0" and root->right->info != "0")
             {
                 root->info = "0";
                 root->left =  NULL;
@@ -1243,7 +1325,7 @@ void simplify(node*& root)
                 irreducible = false;
                 return;
             }
-            if( root->right->info == "0" )
+            if( root->right->info == "0" and root->left->info != "0" )
             {
                 root->info = "1";
                 root->left = NULL;
@@ -1281,8 +1363,6 @@ void compute(node*& root)
             {
                 double x = String2Number(root->left->info);
                 double y = String2Number(root->right->info);
-                cout << x << " " << y;
-                //cout << x + y << '\n';
                 root->info = Number2String(x+y);
                 root->left = NULL;
                 root->right = NULL;
@@ -1356,6 +1436,7 @@ void compute(node*& root)
         }
     }
 }
+
 void math(node*& root)
 {
     if(root != NULL && operand(root->info) != true)
@@ -1366,42 +1447,49 @@ void math(node*& root)
         {
             if(root->right->info == "*" && isdigit(root->left->info[0]))
             {
-                // adancime 3*sin(x) ^ 7
-                node* p = root->right->right;
-                node* c = root->right->left;
                 if(isdigit(root->right->right->info[0]))
                 {
                     double x = String2Number(root->left->info);
                     double y = String2Number(root->right->right->info);
                     root->left->info = Number2String(x*y);
                     root->right = root->right->left;
+                    irreducible = false;
+                    return;
                 }
                 if(isdigit(root->right->left->info[0]))
                 {
-                    int x = String2Number(root->left->info);
-                    int y = String2Number(root->right->left->info);
+                    double x = String2Number(root->left->info);
+                    double y = String2Number(root->right->left->info);
                     root->left->info = Number2String(x*y);
                     root->right = root->right->right;
+                    irreducible = false;
+                    return;
                 }
+
             }
             if(root->left->info == "*" && isdigit(root->right->info[0]))
             {
-                //parcurgereInPreordine(root, 0);
                 if(isdigit(root->left->right->info[0]))
                 {
                     double x = String2Number(root->right->info);
                     double y = String2Number(root->left->right->info);
                     root->left->info = Number2String(x*y);
                     root->right = root->left->left;
+                    irreducible = false;
+                    return;
                 }
                 if(isdigit(root->left->left->info[0]))
                 {
 
                     double x = String2Number(root->right->info);
                     double y = String2Number(root->left->left->info);
-                    root->left->info = Number2String(x*y);
                     root->right = root->left->right;
+                    root->left->info = Number2String(x*y);
+                    root->left->right=NULL;
+                    root->left->left=NULL;
 
+                    irreducible = false;
+                    return;
                 }
             }
         }
@@ -1414,9 +1502,58 @@ void math(node*& root)
                     double x = String2Number(root->right->left->info);
                     double y = String2Number(root->left->left->info);
                     root->left->info = Number2String(x+y);
+                    root->left->left = NULL;
+                    root->left->right = NULL;
                     root->right = root->right->right;
                     root->info = "*";
+                    irreducible = false;
+                    return;
                 }
+                if((compareTrees(root->right->right, root->left->left) && isdigit(root->right->left->info[0])) && isdigit(root->left->right->info[0]))
+                {
+                    double x = String2Number(root->right->left->info);
+                    double y = String2Number(root->left->right->info);
+                    root->left->info = Number2String(x+y);
+                    root->left->left = NULL;
+                    root->left->right = NULL;
+                    root->right = root->right->right;
+                    root->info = "*";
+                    irreducible = false;
+                    return;
+                }
+                if((compareTrees(root->right->left, root->left->right) && isdigit(root->right->right->info[0])) && isdigit(root->left->left->info[0]))
+                {
+                    double x = String2Number(root->right->right->info);
+                    double y = String2Number(root->left->left->info);
+                    root->left->info = Number2String(x+y);
+                    root->left->left = NULL;
+                    root->left->right = NULL;
+                    root->right = root->right->left;
+                    root->info = "*";
+                    irreducible = false;
+                    return;
+                }
+                if((compareTrees(root->right->left, root->left->left) && isdigit(root->right->right->info[0])) && isdigit(root->left->right->info[0]))
+                {
+                    double x = String2Number(root->right->right->info);
+                    double y = String2Number(root->left->right->info);
+                    root->left->info = Number2String(x+y);
+                    root->left->left = NULL;
+                    root->left->right = NULL;
+                    root->right = root->right->left;
+                    root->info = "*";
+                    irreducible = false;
+                    return;
+                }
+            }
+            if(compareTrees(root->right, root->left))
+            {
+                root->info="*";
+                root->left->info="2";
+                root->left->left = NULL;
+                root->left->right = NULL;
+                irreducible = false;
+                return;
             }
         }
         if(root->info == "*")
@@ -1427,45 +1564,82 @@ void math(node*& root)
                 {
                     double x = String2Number(root->right->right->info);
                     double y = String2Number(root->left->right->info);
-                    root->right->info = Number2String(x*y);
+                    root->right->info = Number2String(x+y);
                     root->right->right = NULL;
                     root->right->left = NULL;
                     root->left = root->left->left;
                     root->info = "^";
+                    irreducible = false;
+                    return;
                 }
+            }
+        }
+        if(root->info == "-")
+        {
+            if(compareTrees(root->right, root->left))
+            {
+                root->info="0";
+                root->left=NULL;
+                root->right=NULL;
+                irreducible = false;
+                return;
             }
         }
     }
 }
+
 void load()
 {
     FILE* cit;
     cit = fopen("load_function.txt", "r");
-    char rc[1001];
+    char rc[1001]="";
     fscanf(cit, "%s", &rc);
-    inputString += rc;
+    inputString = rc;
+    if(evaluate(inputString) == false || evaluateStrings(inputString) == false)
+            isOk = false;
+        else
+            isOk = true;
     fclose(cit);
 }
+
 void save()
 {
-    fprintf(sav, "%s%s", "Introduced/loaded function : ", inputString.c_str());
+    sav=fopen("save_derivative.txt", "w");
+
+    string x="";
+    x+="Introduced/loaded function : ";
+    x+=inputString;
+    savedFD.push_back(x);
 
     if(derivatives.size() == 1)
     {
-        fprintf(sav, "%s%s", "\nThe first derivative of the function is : ", derivatives[0].c_str());
+        x="\nThe first derivative of the function is : ";
+        x+=derivatives[0];
     }
 
     if(derivatives.size() == 2)
     {
-        fprintf(sav, "%s%s", "\nThe second order derivative of the function is : ", derivatives[1].c_str());
+        x="\nThe second order derivative of the function is : ";
+        x+=derivatives[1];
+
     }
 
     if(derivatives.size() == 3)
     {
-        fprintf(sav, "%s%s", "\nThe third order derivative of the function is : ", derivatives[2].c_str());
+        x="\nThe third order derivative of the function is : ";
+        x+=derivatives[2];
     }
-    fprintf(sav, "%s", "\n\n\n");
+    savedFD.push_back(x);
+
+    for(int i=0;i<savedFD.size();i++)
+        {
+            fprintf(sav,"%s",savedFD[i].c_str());
+            if(i%2==1)
+            fprintf(sav,"%s","\n");
+        }
+    fclose(sav);
 }
+
 void reset()
 {
     inputString = "";
@@ -1473,42 +1647,43 @@ void reset()
     nrDeriv = 0;
 
     derivatives.clear();
-    for(int i = 0; i <= nrErori; i++)
+    for(int i = 0; i <= nrErrors; i++)
     {
         strcpy(errors[i], " ");
     }
-    nrErori = 0;
+    nrErrors = 0;
 
-    for(int i = 0; i <= nrRanduri; i++)
+    for(int i = 0; i <= nrrows; i++)
     {
-        strcpy(randuri[i], " ");
+        strcpy(rows[i], " ");
     }
-    nrRanduri = 0;
-    inceput = 0;
+    nrrows = 0;
+    beginning = 0;
 
     inputFull = false;
 }
-int nrNiveluri(node *a)
+
+int levelNo(node *a)
 {
     if(a==NULL)return 0;
     else
     {
-        int n1=nrNiveluri(a->left);
-        int n2=nrNiveluri(a->right);
+        int n1=levelNo(a->left);
+        int n2=levelNo(a->right);
         return 1+max(n1,n2);
     }
 }
-int nrColoane(node *a)
+int columnsNo(node *a)
 {
     if(a==NULL)return 0;
     else
     {
-        int n1=nrColoane(a->left);
-        int n2=nrColoane(a->right);
+        int n1=columnsNo(a->left);
+        int n2=columnsNo(a->right);
         return 1+n1+n2;
     }
 }
-void deseneazaNod(string elem, int xc, int yc, int latime, int inaltime)
+void drawNode(string elem, int xc, int yc, int width, int height)
 {
     if(elem != "0")
     {
@@ -1523,32 +1698,50 @@ void deseneazaNod(string elem, int xc, int yc, int latime, int inaltime)
     outtextxy(xc,yc+4,arr);
     }
 }
-void drawTree(node *a, int niv, int stanga, int latime, int inaltime)
+void drawTree(node *a, int level, int left, int width, int height)
 {
     if(a!=NULL)
     {
-        int n1=nrColoane(a->left);
-        int xc=stanga+latime*n1+latime/2;
-        int yc=niv*inaltime-inaltime/2;
+        int n1=columnsNo(a->left);
+        int xc=left+width*n1+width/2;
+        int yc=level*height-height/2;
 
         if (a->left!=NULL && a->left->info != "0")
         {
-            int xcs=stanga+latime*nrColoane(a->left->left)+latime/2;
+            int xcs=left+width*columnsNo(a->left->left)+width/2;
             setcolor(WHITE);
-            line(xc,yc,xcs,yc+inaltime);
+            line(xc,yc,xcs,yc+height);
         }
-        if (a->right!=NULL && a->right->info != "0")
+        if (a->right!=NULL && a->left != NULL && a->right->info != "0" && a->left->info != "0" )
         {
-            int xcd=stanga+latime*(n1+1)+latime*nrColoane(a->right->left)+latime/2;
+            int xcd=left+width*(n1+1)+width*columnsNo(a->right->left)+width/2;
             setcolor(WHITE);
-            line(xc,yc,xcd,yc+inaltime);
+            line(xc,yc,xcd,yc+height);
         }
-        deseneazaNod(a->info,xc,yc,latime, inaltime);
-        drawTree(a->left,niv+1,stanga, latime, inaltime);
-        drawTree(a->right,niv+1,stanga+latime*(n1+1), latime, inaltime);
-    }
 
+        if((a->right!=NULL && a->left == NULL) || (a->right != NULL && a->left->info == "0"))
+        {
+            setcolor(WHITE);
+            line(xc,yc,xc,yc+height);
+        }
+
+        drawNode(a->info,xc,yc,width,height);
+
+        if(a->left!=NULL && a->left->info != "0")
+        {
+            drawTree(a->left,level+1,left, width, height);
+        }
+        if(a->right != NULL && a->left != NULL && a->left->info != "0")
+        {
+            drawTree(a->right,level+1,left+width*(n1+1), width, height);
+        }
+        if((a->right != NULL && a->left == NULL) || (a->right != NULL && a->left->info == "0"))
+        {
+            drawTree(a->right,level+1, xc - width * columnsNo(a->right->left) - width / 2, width, height);
+        }
+    }
 }
+
 void handleEvents()
 {
     if(activePage == 1)
@@ -1574,7 +1767,8 @@ void handleEvents()
         initwindow(100, 50, "Confirm", 400, 500, false, false);
         secondWindow = getcurrentwindow();
         setcurrentwindow(secondWindow);
-        outtextxy(45, 20, "Saved!");delay(1500);
+        outtextxy(45, 20, "Saved!");
+        delay(1500);
         closegraph(secondWindow);
 
         save();
@@ -1585,7 +1779,6 @@ void handleEvents()
         reset();
     }
 
-    //cout << infoButton << '\n';
 
     if(backButton == true)
     {
@@ -1601,12 +1794,12 @@ void handleEvents()
     if(drawButton == true)
     {
         int closed=0;
-        initwindow(1000, 600, "Arbore", 125, 25, false, true);
+        initwindow(1000, 600, "Tree", 125, 25, false, false);
         thirdWindow = getcurrentwindow();
         setcurrentwindow(thirdWindow);
         rectangle(950,570,990,590);
         outtextxy(956, 573, "EXIT");
-        drawTree(rootD, 1, 9, 900/nrColoane(rootD), 550/nrNiveluri(rootD));
+        drawTree(rootD, 1, 0, 1000/columnsNo(rootD), 600/levelNo(rootD));
         while(closed!=1)
         {
             if(ismouseclick(WM_LBUTTONDOWN))
@@ -1622,11 +1815,11 @@ void handleEvents()
                 closed=1;
             }
         }
-     }
-     if(exitButton==true)
-     {
+    }
+    if(exitButton==true)
+    {
         isRunning = false;
-     }
+    }
     if(deriveButton == true && isOk == true)
     {
         saved = false;
@@ -1638,37 +1831,47 @@ void handleEvents()
             while(!irreducible)
             {
                 irreducible = true;
+                math(rootF);
                 simplify(rootF);
                 compute(rootF);
             }
-            math(rootF);
-            int c = nrDeriv;
-            while(c && c < 4)
-            {
-                rootD = derive(rootF);
-                rootF = rootD;
-                if(irreducible == true)
-                    irreducible = false;
-
-                while(!irreducible)
+            irreducible=false;
+            correctMath=true;
+            if(evaluateTree(rootF)==false)
                 {
-                    irreducible = true;
-                    simplify(rootD);
-                    compute(rootD);
+                    isOk=false;
+                   nrDeriv=0;
                 }
-                math(rootF);
-                c--;
+            else
+            {
+
+                int c = nrDeriv;
+                while(c && c < 4)
+                {
+                    rootD = derive(rootF);
+                    rootF = rootD;
+                    if(irreducible == true)
+                        irreducible = false;
+
+                    while(!irreducible)
+                    {
+                        irreducible = true;
+                        math(rootD);
+                        simplify(rootD);
+                        compute(rootD);
+                    }
+                    irreducible=false;
+                    c--;
+                }
+                negativeNrTree(rootD);
+                postorder(rootD);
+                infixDeriv = convPostfix2Infix(postfixDeriv);
+                conversionDone = true;
             }
-
-            postorder(rootD);
-            //cout << postfixDeriv << '\n';
-            infixDeriv = convPostfix2Infix(postfixDeriv);
-            //cout << infixDeriv << '\n';
-
-            conversionDone = true;
         }
     }
 }
+
 void generateOutput()
 {
     setcurrentwindow(firstWindow);
@@ -1678,7 +1881,6 @@ void generateOutput()
     setcolor(BLACK);
     cleardevice();
     setcolor(WHITE);
-
 
     // prima caseta
     rectangle(50, 100, 950, 250);
@@ -1744,9 +1946,10 @@ void generateOutput()
     }
     else
     {
-        outtextxy(50, 505, "The operators supported by the calculator are : +, -, *, /, ^.");
-        outtextxy(50, 525, "The functions supported by the calculator are : sin, cos, tg, ctg, sqrt, ln, log, lg, arcsin, arccos, arctg, arcctg.");
-        outtextxy(50, 545, "Please use paranthesis to specify the arguments of the functions.");
+        outtextxy(50, 490, "The operators supported by the calculator are : +, -, *, /, ^.");
+        outtextxy(50, 510, "The functions supported by the calculator are : sin, cos, tg, ctg, sqrt, ln, log, lg, arcsin, arccos, arctg, arcctg.");
+        outtextxy(50, 530, "Please use paranthesis to specify the arguments of the functions.");
+        outtextxy(50, 560, "Students : Antoneac Andrada-Livia, Sîrghi Constantin-Florin");
 
         rectangle(900, 530, 940, 560);
         outtextxy(905, 535, "Back");
@@ -1754,29 +1957,31 @@ void generateOutput()
 
     char temp[2000];
     strcpy(temp, inputString.c_str());
-
-    if(strlen(temp) >= inceput && strlen(temp) <= inceput + 111)
-        strcpy(randuri[nrRanduri], temp + inceput);
+    if(textwidth(temp) < (nrrows+1)*890)
+        strcpy(rows[nrrows], temp+beginning);
     else
-    {
-        nrRanduri++;
-        inceput = inceput + 111;
-    }
+        {
+            nrrows++;
+            beginning = inputString.size();
+        }
 
     yPoz = 105;
-    for(int i = 0; i <= nrRanduri; i++)
+    for(int i = 0; i <= nrrows; i++)
     {
-        outtextxy(55, yPoz, randuri[i]);
+        outtextxy(55, yPoz, rows[i]);
         yPoz += 15;
     }
 
+    int startErrors=0;
     if(!isOk)
     {
         int pzy = 305;
         outtextxy(55, 305, "Invalid input: ");
-        for(int i = 0; i < nrErori; i++)
+        if(nrErrors>=8)
+            startErrors=nrErrors-8;
+        for(int i = startErrors; i < nrErrors; i++)
         {
-            outtextxy(55, pzy + ((i+1) * 15), errors[i]);
+            outtextxy(55, pzy + ((i-startErrors+1) * 15), errors[i]);
         }
     }
 
@@ -1814,7 +2019,6 @@ void generateOutput()
                     strcpy(temp, temp+1);
                     temp[strlen(temp) - 1] = NULL;
                 }
-
                 string nD = "";
                 for(int i = 0; i < strlen(temp); i++)
                     nD += temp[i];
@@ -1827,28 +2031,35 @@ void generateOutput()
                         derivatives.push_back(nD);
                 }
 
-                inceputD = 0;
-                nrRanduriD = 0;
+                beginningD = 0;
+                nrrowsD = 0;
 
-                while(inceputD < strlen(temp))
+                while(beginningD < strlen(temp))
                 {
-                    if(strlen(temp) - inceputD > 160)
+                    if(textwidth(temp) - beginningD > (nrrowsD+1) * 890)
                     {
-                        strncpy(randuriD[nrRanduriD], temp + inceputD, 160);
-                        inceputD += 160;
-                        nrRanduriD++;
+                        char help[5001] = "";
+                        int ind = 0;
+                        while(textwidth(help) < 890)
+                        {
+                            help[ind] = temp[beginningD + ind];
+                            ind++;
+                        }
+                        strcpy(rowsD[nrrowsD], help);
+                        beginningD += ind;
+                        nrrowsD++;
                     }
                     else
                     {
-                        strcpy(randuriD[nrRanduriD], temp + inceputD);
+                        strcpy(rowsD[nrrowsD], temp + beginningD);
                         break;
                     }
                 }
 
                 yPozD = 305;
-                for(int i = 0; i <= nrRanduriD; i++)
+                for(int i = 0; i <= nrrowsD; i++)
                 {
-                    outtextxy(55, yPozD, randuriD[i]);
+                    outtextxy(55, yPozD, rowsD[i]);
                     yPozD += 17;
                 }
             }
