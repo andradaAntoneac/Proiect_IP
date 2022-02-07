@@ -1,2 +1,2 @@
-# Proiect_IP
-An app that solves derivatives
+# Project_DERIV
+An app that solves derivatives, evaluates the introduced function and detects syntactical and mathematical mistakes.
